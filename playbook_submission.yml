@@ -1,0 +1,45 @@
+---
+- hosts: all
+  become: true
+  tasks:
+    - name: Install required system packages
+      apt:
+        name: [ 'apt-transport-https',
+                'ca-certificates',
+                'curl',
+                'software-properties-common',
+                'gnupg-agent',
+                'python3-pip',
+                'virtualenv',
+                'python3-setuptools']
+        state: latest
+        update_cache: yes
+
+    - name: Add Docker GPG apt Key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker Repository
+      shell: sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+
+    - name: Update apt and install docker-ce
+      apt:
+        update_cache: yes
+        name: ['docker-ce',
+               'docker-ce-cli',
+               'containerd.io']
+        state: latest
+      notify:
+       - restart docker-ce
+
+    - name: Add ubuntu user to the docker group
+      shell: sudo usermod -aG docker ubuntu
+
+  handlers:
+    - name: restart docker-ce
+      service:
+       name: ['docker-ce',
+              'docker-ce-cli',
+              'containerd.io']
+       state: restarted
